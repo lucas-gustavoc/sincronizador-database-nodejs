@@ -1,0 +1,19 @@
+{
+  "name": "onelightbrasil",
+  "version": "1.0.0",
+  "description": "Projeto para integrar dois bancos de dados de uma empresa.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucas-gustavoc/sincronizardo-database-nodejs.git"
+  },
+  "author": "Lucas Gustavo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lucas-gustavoc/sincronizardo-database-nodejs/issues"
+  },
+  "homepage": "https://github.com/lucas-gustavoc/sincronizardo-database-nodejs#readme"
+}
