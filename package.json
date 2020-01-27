@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/lucas-gustavoc/sincronizardo-database-nodejs/issues"
   },
-  "homepage": "https://github.com/lucas-gustavoc/sincronizardo-database-nodejs#readme"
+  "homepage": "https://github.com/lucas-gustavoc/sincronizardo-database-nodejs#readme",
+  "dependencies": {
+    "mysql": "^2.18.1"
+  }
 }
