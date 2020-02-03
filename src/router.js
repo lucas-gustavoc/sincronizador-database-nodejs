@@ -1,32 +1,148 @@
+const validator = require('validator')
 const express = require('express')
 const router = new express.Router()
-const mysql = require('mysql')
 const db = require('../db/mysql')
+const utils = require('./utils')
 
-router.get('/pedidos/:id', (req, res) => {
-    res.send('Aqui nós enviamos o pedido de id ' + req.params.id)
+router.get('/pedidos/:id', async (req, res) => {
+    const _id = req.params.id
+
+    try {
+        res.send(await utils.obterPedidoCompleto(_id))
+    } catch (error) {
+        if (error.erro) {
+            // Manda o objeto erro em caso de erro no modelo padrão
+            res.status(400).send(error)
+        } else {
+            // Caso não seja o modelo padrão, padroniza e manda
+            res.status(400).send({ erro: error.message }) 
+        }
+    }
 })
 
 router.get('/pedidos/status/:status', async (req, res) => {
     try {
-        const sql = 'select order_id, total_sales from wp_wc_order_stats where status = ?'
-        const values = [req.params.status]
-        res.send(await db.query({ sql, values }))
+        const sql = {}
+        sql.sql = 'select order_id, total_sales from wp_wc_order_stats where status = ?'
+        sql.values = [req.params.status]
+        
+        // Inserindo o limite de registros, caso exista
+        const limite = req.query.limite
+        if (limite && validator.isInt(limite)) {
+            sql.sql = sql.sql.concat(' limit ?')
+            sql.values.push(parseInt(limite))
+        }
+
+        res.send(await db.query(sql))
     } catch (error) {
-        res.status(400).send(error)
+        if (error.erro) {
+            // Manda o objeto erro em caso de erro no modelo padrão
+            res.status(400).send(error)
+        } else {
+            // Caso não seja o modelo padrão, padroniza e manda
+            res.status(400).send({ erro: error.message }) 
+        }
     }
 })
 
-router.patch('/pedidos/:id/status', (req, res) => {
-    res.send('Aqui nós vamos atualizar o status do pedido ' + req.params.id + ' para "' + req.body.novoStatus + '"')
+router.patch('/pedidos/:id/status', async (req, res) => {
+    const _id = req.params.id
+    const novoStatus = req.body.novoStatus
+
+    try {
+        if (!novoStatus) throw new Error('Um novo status precisa ser informado!')
+
+        const sql = {}
+        sql.sql = 'update wp_wc_order_stats set status = ? where order_id = ?'
+        sql.values = [ novoStatus, _id ]
+
+        const update = await db.query(sql)
+
+        if (update.affectedRows > 0) {
+            res.send({ ok: 'Status do pedido atualizado com sucesso!' })
+        } else {
+            res.send({ ok: 'Pedido não encontrado!' })
+        }
+
+    } catch (error) {
+        if (error.erro) {
+            // Manda o objeto erro em caso de erro no modelo padrão
+            res.status(400).send(error)
+        } else {
+            // Caso não seja o modelo padrão, padroniza e manda
+            res.status(400).send({ erro: error.message }) 
+        }
+    }
+    
 })
 
-router.patch('/produtos/:sku/preco', (req, res) => {
-    res.send('Aqui nós vamos atualizar o valor do produto ' + req.params.sku + ' para ' + req.body.precoDe)
+router.patch('/produtos/:sku/preco', async (req, res) => {
+    const sku = req.params.sku
+    const precoDe = req.body.precoDe
+    const precoPor = req.body.precoPor
+
+    try {
+        if ((precoDe && typeof precoDe == 'number') || (precoPor && typeof precoPor == 'number')) {
+
+            const novosPrecos = {}
+            if (precoDe && typeof precoDe == 'number') novosPrecos.max_price = parseFloat(precoDe)
+            if (precoPor && typeof precoPor == 'number') novosPrecos.min_price = parseFloat(precoPor)
+
+            const sql = {}
+            sql.sql = 'update wp_wc_product_meta_lookup set ? where sku = ?'
+            sql.values = [ novosPrecos, sku ]
+
+            const update = await db.query(sql)
+
+            if (update.affectedRows > 0) {
+                res.send({ ok: 'Preços atualizados com sucesso!' })
+            } else {
+                res.send({ ok: 'Produto não encontrado!' })
+            }
+        } else {
+            throw new Error('Um novo "Preço De" ou "Preço Por" precisa ser informado, sendo necessário que estejam em formato numérico.')
+        }
+    } catch (error) {
+        if (error.erro) {
+            // Manda o objeto erro em caso de erro no modelo padrão
+            res.status(400).send(error)
+        } else {
+            // Caso não seja o modelo padrão, padroniza e manda
+            res.status(400).send({ erro: error.message }) 
+        }
+    }
 })
 
-router.patch('/produtos/:sku/estoque', (req, res) => {
-    res.send('Aqui nós vamos atualizar o estoque do produto ' + req.params.sku + ' para ' + req.body.estoque)
+router.patch('/produtos/:sku/estoque', async (req, res) => {
+    const sku = req.params.sku
+    const estoque = req.body.estoque
+
+    try {
+        if (estoque && typeof estoque == 'number') {
+
+            const sql = {}
+            sql.sql = 'update wp_wc_product_meta_lookup set stock_quantity = ? where sku = ?'
+            sql.values = [ estoque, sku ]
+
+            const update = await db.query(sql)
+
+            if (update.affectedRows > 0) {
+                res.send({ ok: 'Estoque atualizado com sucesso!' })
+            } else {
+                res.send({ ok: 'Produto não encontrado!' })
+            }
+        } else {
+            throw new Error('Um novo estoque precisa ser informado, sendo necessário que esteja em formato numérico.')
+        }
+    } catch (error) {
+        if (error.erro) {
+            // Manda o objeto erro em caso de erro no modelo padrão
+            res.status(400).send(error)
+        } else {
+            // Caso não seja o modelo padrão, padroniza e manda
+            res.status(400).send({ erro: error.message }) 
+        }
+    }
 })
 
 module.exports = router
