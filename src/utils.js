@@ -1,48 +1,52 @@
 const { query } = require('../db/mysql')
 
-// Objeto que irá receber dados completos de um pedido
-const pedidoCompleto = {
-    pedido: {
-        id: 0,
-        valotTotal: 0,
-        frete: 0.0,
-        data: 0,
-        status: '',
-        customer_id: 0
-    },
-    cliente: {
-        id: 0,
-        nome: '',
-        telefone: [],
-        email: '',
-        cpf: '',
-        cnpj: '',
-        endereco: {
-            faturamento: {
-                logradouro: '',
-                numero: '',
-                bairro: '',
-                cidade: '',
-                uf: '',
-                pais: '',
-                cep: ''
-            },
-            entrega: {
-                logradouro: '',
-                numero: '',
-                bairro: '',
-                cidade: '',
-                uf: '',
-                pais: '',
-                cep: ''
+// Classe que irá receber dados completos de um pedido
+class PedidoCompleto {
+    constructor() {
+        this.pedido = {
+                id: 0,
+                valotTotal: 0,
+                frete: 0.0,
+                data: 0,
+                status: '',
+                customer_id: 0
+            }
+        this.cliente = {
+            id: 0,
+            nome: '',
+            telefone: [],
+            email: '',
+            cpf: '',
+            cnpj: '',
+            endereco: {
+                faturamento: {
+                    logradouro: '',
+                    numero: '',
+                    bairro: '',
+                    cidade: '',
+                    uf: '',
+                    pais: '',
+                    cep: ''
+                },
+                entrega: {
+                    logradouro: '',
+                    numero: '',
+                    bairro: '',
+                    cidade: '',
+                    uf: '',
+                    pais: '',
+                    cep: ''
+                }
             }
         }
-    },
-    produtos: []
+        this.produtos = []
+    }
+    
 }
 
-
 const obterPedidoCompleto = async (pedido_id) => {
+    
+    const pedidoCompleto = new PedidoCompleto()
     const sql = {}
 
     // PEDIDO
