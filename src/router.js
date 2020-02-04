@@ -3,8 +3,9 @@ const express = require('express')
 const router = new express.Router()
 const db = require('../db/mysql')
 const utils = require('./utils')
+const auth = require('../middleware/auth')
 
-router.get('/pedidos/:id', async (req, res) => {
+router.get('/pedidos/:id', auth, async (req, res) => {
     const _id = req.params.id
 
     try {
@@ -20,7 +21,7 @@ router.get('/pedidos/:id', async (req, res) => {
     }
 })
 
-router.get('/pedidos/status/:status', async (req, res) => {
+router.get('/pedidos/status/:status', auth, async (req, res) => {
     try {
         const sql = {}
         sql.sql = 'select order_id, total_sales from wp_wc_order_stats where status = ?'
@@ -45,7 +46,7 @@ router.get('/pedidos/status/:status', async (req, res) => {
     }
 })
 
-router.patch('/pedidos/:id/status', async (req, res) => {
+router.patch('/pedidos/:id/status', auth, async (req, res) => {
     const _id = req.params.id
     const novoStatus = req.body.novoStatus
 
@@ -76,7 +77,7 @@ router.patch('/pedidos/:id/status', async (req, res) => {
     
 })
 
-router.patch('/produtos/:sku/preco', async (req, res) => {
+router.patch('/produtos/:sku/preco', auth, async (req, res) => {
     const sku = req.params.sku
     const precoDe = req.body.precoDe
     const precoPor = req.body.precoPor
@@ -100,7 +101,8 @@ router.patch('/produtos/:sku/preco', async (req, res) => {
                 res.send({ ok: 'Produto não encontrado!' })
             }
         } else {
-            throw new Error('Um novo "Preço De" ou "Preço Por" precisa ser informado, sendo necessário que estejam em formato numérico.')
+            throw new Error('Um novo "Preço De" ou "Preço Por" precisa ser informado, ' +
+                            'sendo necessário que estejam em formato numérico.')
         }
     } catch (error) {
         if (error.erro) {
@@ -113,7 +115,7 @@ router.patch('/produtos/:sku/preco', async (req, res) => {
     }
 })
 
-router.patch('/produtos/:sku/estoque', async (req, res) => {
+router.patch('/produtos/:sku/estoque', auth, async (req, res) => {
     const sku = req.params.sku
     const estoque = req.body.estoque
 
@@ -132,7 +134,8 @@ router.patch('/produtos/:sku/estoque', async (req, res) => {
                 res.send({ ok: 'Produto não encontrado!' })
             }
         } else {
-            throw new Error('Um novo estoque precisa ser informado, sendo necessário que esteja em formato numérico.')
+            throw new Error('Um novo estoque precisa ser informado, sendo necessário' +
+                            ' que esteja em formato numérico.')
         }
     } catch (error) {
         if (error.erro) {

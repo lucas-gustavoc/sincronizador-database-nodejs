@@ -1,3 +1,4 @@
 node_modules/
 src/play.js
 db/acesso.json
+src/users.json
