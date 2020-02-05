@@ -5,6 +5,10 @@ const db = require('../db/mysql')
 const utils = require('./utils')
 const auth = require('../middleware/auth')
 
+router.get('/', (req, res) => {
+    res.send('<h3 style="font-family: sans-serif; margin: 0">API is working...</h3><p style="color: gray; margin: 0; font-style: italic; font-family: sans-serif">v. 1.1</p>')
+})
+
 router.get('/pedidos/:id', auth, async (req, res) => {
     const _id = req.params.id
 
