@@ -1,4 +1,16 @@
 const { query } = require('../db/mysql')
+const wooCommerceApi = require('@woocommerce/woocommerce-rest-api').default
+const fs = require('fs')
+
+// Preparando conexão com a API do WooCommerce. Ela será utilizada apenas em alguns casos
+const wooCommerceConnData = JSON.parse(fs.readFileSync('./src/woocommerce.json').toString())
+
+const wooCommerce = new wooCommerceApi({
+    url: wooCommerceConnData.url,
+    consumerKey: wooCommerceConnData.ck,
+    consumerSecret: wooCommerceConnData.cs,
+    version: 'wc/v3'
+})
 
 // Classe que irá receber dados completos de um pedido
 class PedidoCompleto {
@@ -7,9 +19,10 @@ class PedidoCompleto {
                 id: 0,
                 valorTotal: 0,
                 frete: 0.0,
-                data: 0,
+                dataDeCriacao: 0,
                 status: '',
-                tipoDeFrete: ''
+                tipoDeFrete: '',
+                dataDePagamento: ''
             }
         this.cliente = {
             id: 0,
@@ -62,8 +75,12 @@ const obterPedidoCompleto = async (pedido_id) => {
     pedidoCompleto.pedido.id = dbData[0].order_id
     pedidoCompleto.pedido.valorTotal = dbData[0].total_sales
     pedidoCompleto.pedido.frete = dbData[0].shipping_total
-    pedidoCompleto.pedido.data = dbData[0].date_created
+    pedidoCompleto.pedido.dataDeCriacao = dbData[0].date_created
     pedidoCompleto.pedido.status = dbData[0].status
+
+    const wcApiData = await wooCommerce.get('orders/' + pedido_id)
+    pedidoCompleto.pedido.dataDePagamento = wcApiData.data.date_paid
+    
 
     // PEDIDO > Obtendo customer_id para uso posterior.
 
@@ -120,13 +137,21 @@ const obterPedidoCompleto = async (pedido_id) => {
     // PRODUTOS
 
     sql.sql = 'select wp_posts.post_title, wp_wc_order_product_lookup.product_id, wp_wc_order_product_lookup.product_qty, ' + 
-                'wp_wc_order_product_lookup.product_net_revenue, wp_wc_order_product_lookup.shipping_amount, ' +
-                'wp_wc_product_meta_lookup.sku from wp_wc_order_product_lookup, wp_posts, wp_wc_product_meta_lookup ' +
+                'wp_wc_order_product_lookup.product_net_revenue, wp_wc_order_product_lookup.shipping_amount ' +
+                'from wp_wc_order_product_lookup, wp_posts, wp_wc_product_meta_lookup ' +
                 'where wp_wc_order_product_lookup.order_id = ? and wp_wc_order_product_lookup.product_id = ' +
                 'wp_wc_product_meta_lookup.product_id and wp_posts.ID = wp_wc_product_meta_lookup.product_id'
     sql.values = [pedido_id]
     
     dbData = await query(sql)
+
+    let i
+    for (i = 0; i < dbData.length; i++) {
+        sql.sql = 'select meta_value from wp_postmeta where meta_key = "my_inventory_ref" and post_id = ?'
+        sql.values = [dbData[i].product_id]
+        const prodData = await query(sql)
+        dbData[i].sku = (prodData.length > 0) ? prodData[0].meta_value : 0
+    }
 
     dbData.forEach((linha) => {
         pedidoCompleto.produtos.push({
@@ -143,4 +168,27 @@ const obterPedidoCompleto = async (pedido_id) => {
 
 }
 
-module.exports = { obterPedidoCompleto }
+const obterProdutoCompleto = async (sku) => {
+
+    const sql = {}
+    sql.sql = 'select post_id from wp_postmeta where meta_key = "my_inventory_ref" and meta_value = ?'
+    sql.values = [sku]
+    const dbData = await query(sql)
+    
+    if (dbData.length === 0) return Promise.resolve({}) // SKU Inexistente
+
+    const produto_id = dbData[0].post_id
+    const wcApiData = await wooCommerce.get('products/' + produto_id)
+    return wcApiData.data
+}
+
+const obterIdPeloSku = async (sku) => {
+    const sql = {}
+    sql.sql = 'select post_id from wp_postmeta where meta_key = "my_inventory_ref" and meta_value = ?'
+    sql.values = [sku]
+    const dbData = await query(sql)
+    
+    return (dbData[0]) ? dbData[0].post_id : undefined
+}
+
+module.exports = { obterPedidoCompleto, obterProdutoCompleto, obterIdPeloSku }
