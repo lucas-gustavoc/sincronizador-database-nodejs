@@ -94,7 +94,7 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
 
             updates.push(await db.query(sql))
 
-            if (updates[updates.length - 1].affectedRows < 0) {
+            if (updates[updates.length - 1].affectedRows == 0) {
                 sql.msg = sql.msg.concat('Não foi possível atualizar o status. ')
             } else {
                 sql.msg = sql.msg.concat('Status do pedido atualizado com sucesso. ')
@@ -109,7 +109,7 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
             
             updates.push(await db.query(sql))
 
-            if (updates[updates.length - 1].affectedRows < 0) {
+            if (updates[updates.length - 1].affectedRows == 0) {
                 sql.msg = sql.msg.concat('Não foi possível atualizar o rastreamento. ')
             } else {
                 sql.msg = sql.msg.concat('Rastreamento atualizado com sucesso. ')
@@ -122,7 +122,7 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
             
             updates.push(await db.query(sql))
 
-            if (updates[updates.length - 1].affectedRows < 0) {
+            if (updates[updates.length - 1].affectedRows == 0) {
                 sql.msg = sql.msg.concat('Não foi possível atualizar a chave da NFe. ')
             } else {
                 sql.msg = sql.msg.concat('Chave da NFe atualizada com sucesso. ')
