@@ -5,8 +5,17 @@ const db = require('../db/mysql')
 const utils = require('./utils')
 const auth = require('../middleware/auth')
 
+// ALTERAÇÕES
+// [x] Permitir alteração somente do código de rastreamento ou NFe, sem atualizar o status
+// [x] Alterar o campo utilizado para o código de rastreamento
+// [x] Inserir cadastro de chave de NFe
+// [ ] Retornar mensagem diferente quando nenhum registro foi atualizado
+
+// 34tg35t354vy4tr
+// 867395820942948673053957395739583957395839476948
+
 router.get('/', (req, res) => {
-    res.send('<h3 style="font-family: sans-serif; margin: 0">API is working...</h3><p style="color: gray; margin: 0; font-style: italic; font-family: sans-serif">v. 1.4</p>')
+    res.send('<h3 style="font-family: sans-serif; margin: 0">API is working...</h3><p style="color: gray; margin: 0; font-style: italic; font-family: sans-serif">v. 1.5</p>')
 })
 
 router.get('/pedidos/:id', auth, async (req, res) => {
@@ -70,27 +79,60 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
     const _id = req.params.id
     const novoStatus = req.body.novoStatus
     const rastreamento = req.body.rastreamento
+    const chaveNfe = req.body.nfe
 
     try {
-        if (!novoStatus) throw new Error('Um novo status precisa ser informado!')
+        if (!novoStatus && !rastreamento && !chaveNfe) throw new Error('Necessário informar status, chave de NFe ou código de Rastreamento!')
 
         const sql = {}
-        sql.sql = 'update wp_wc_order_stats set status = ? where order_id = ?'
-        sql.values = [ novoStatus, _id ]
+        const updates = [] // Irá armazenar cada update realizado
+        sql.msg = ''
 
-        const update = await db.query(sql)
+        if (novoStatus) {
+            sql.sql = 'update wp_wc_order_stats set status = ? where order_id = ?'
+            sql.values = [ novoStatus, _id ]
 
+            updates.push(await db.query(sql))
+
+            if (updates[updates.length - 1].affectedRows < 0) {
+                sql.msg = sql.msg.concat('Não foi possível atualizar o status. ')
+            } else {
+                sql.msg = sql.msg.concat('Status do pedido atualizado com sucesso. ')
+            }
+            
+        }
+        
+        
         if (rastreamento) {
-            sql.sql = 'update wp_postmeta set meta_value = ? where post_id = ? and meta_key = "_correios_tracking_code"'
+            sql.sql = 'update wp_postmeta set meta_value = ? where post_id = ? and meta_key = "my_code_track"'
             sql.values = [ rastreamento, _id ]
             
-            await db.query(sql)
+            updates.push(await db.query(sql))
+
+            if (updates[updates.length - 1].affectedRows < 0) {
+                sql.msg = sql.msg.concat('Não foi possível atualizar o rastreamento. ')
+            } else {
+                sql.msg = sql.msg.concat('Rastreamento atualizado com sucesso. ')
+            }
         }
 
-        if (update.affectedRows > 0) {
-            res.send({ ok: 'Status do pedido atualizado com sucesso!' })
+        if (chaveNfe) {
+            sql.sql = 'update wp_postmeta set meta_value = ? where post_id = ? and meta_key = "my_key_note"'
+            sql.values = [ chaveNfe, _id ]
+            
+            updates.push(await db.query(sql))
+
+            if (updates[updates.length - 1].affectedRows < 0) {
+                sql.msg = sql.msg.concat('Não foi possível atualizar a chave da NFe. ')
+            } else {
+                sql.msg = sql.msg.concat('Chave da NFe atualizada com sucesso. ')
+            }
+        }
+
+        if (updates.every((update) => { return update.affectedRows > 0 })) {
+            res.send({ ok: 'Pedido atualizado com sucesso!' })
         } else {
-            res.send({ ok: 'Pedido não encontrado!' })
+            res.send({ ok: sql.msg })
         }
 
     } catch (error) {
