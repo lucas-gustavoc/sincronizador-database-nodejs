@@ -3,3 +3,4 @@ src/play.js
 db/acesso.json
 src/users.json
 src/woocommerce.json
+src/webservice.js

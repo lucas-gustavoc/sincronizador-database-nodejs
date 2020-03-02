@@ -1,9 +1,11 @@
 const validator = require('validator')
 const express = require('express')
+const nodeFetch = require('node-fetch')
 const router = new express.Router()
 const db = require('../db/mysql')
 const utils = require('./utils')
 const auth = require('../middleware/auth')
+const obterUrlWebservice = require('./webservice')
 
 // ALTERAÇÕES
 // [x] Permitir alteração somente do código de rastreamento ou NFe, sem atualizar o status
@@ -89,17 +91,21 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
         sql.msg = ''
 
         if (novoStatus) {
-            sql.sql = 'update wp_wc_order_stats set status = ? where order_id = ?'
-            sql.values = [ novoStatus, _id ]
+            // sql.sql = 'update wp_wc_order_stats set status = ? where order_id = ?'
+            // sql.values = [ novoStatus, _id ]
 
-            updates.push(await db.query(sql))
-
-            if (updates[updates.length - 1].affectedRows == 0) {
-                sql.msg = sql.msg.concat('Não foi possível atualizar o status. ')
-            } else {
-                sql.msg = sql.msg.concat('Status do pedido atualizado com sucesso. ')
-            }
             
+
+
+            const url = obterUrlWebservice(_id, novoStatus)
+
+            const urlRet = await nodeFetch(url)
+            const jsonRet = await urlRet.json()
+            
+            updates.push(jsonRet.ID === 1)
+
+            sql.msg = sql.msg.concat(jsonRet.result)
+
         }
         
         
@@ -129,11 +135,13 @@ router.patch('/pedidos/:id/status', auth, async (req, res) => {
             }
         }
 
-        if (updates.every((update) => { return update.affectedRows > 0 })) {
-            res.send({ ok: 'Pedido atualizado com sucesso!' })
-        } else {
-            res.send({ ok: sql.msg })
-        }
+        // if (updates.every((update) => { return update.affectedRows > 0 })) {
+        //     res.send({ ok: 'Pedido atualizado com sucesso!' })
+        // } else {
+        //     res.send({ ok: sql.msg })
+        // }
+
+        res.send({ ok: sql.msg })
 
     } catch (error) {
         if (error.erro) {
