@@ -17,7 +17,7 @@ const obterUrlWebservice = require('./webservice')
 // 867395820942948673053957395739583957395839476948
 
 router.get('/', (req, res) => {
-    res.send('<h3 style="font-family: sans-serif; margin: 0">API is working...</h3><p style="color: gray; margin: 0; font-style: italic; font-family: sans-serif">v. 1.5</p>')
+    res.send('<h3 style="font-family: sans-serif; margin: 0">API is working...</h3><p style="color: gray; margin: 0; font-style: italic; font-family: sans-serif">v. 1.6</p>')
 })
 
 router.get('/pedidos/:id', auth, async (req, res) => {
@@ -174,10 +174,12 @@ router.patch('/produtos/:sku/preco', auth, async (req, res) => {
             if (precoPor && typeof precoPor == 'number') novosPrecos.min_price = parseFloat(precoPor)
 
             const sql = {}
-            sql.sql = 'update wp_wc_product_meta_lookup set ? where product_id = ?'
-            sql.values = [ novosPrecos, product_id ]
+            // sql.sql = 'update wp_wc_product_meta_lookup set ? where product_id = ?'
+            // sql.values = [ novosPrecos, product_id ]
 
-            let update = await db.query(sql)
+            // let update = await db.query(sql)
+
+            let update = {}
 
             // Atualizando preço na tabela wp_postmeta (apenas em caso de fornecimento do precoPor)
 
@@ -185,7 +187,18 @@ router.patch('/produtos/:sku/preco', auth, async (req, res) => {
                 novosPrecos = {}
                 novosPrecos.meta_value = precoPor
 
-                sql.sql = 'update wp_postmeta set ? where post_id = ? and (meta_key = "_price" or meta_key = "_regular_price")'
+                sql.sql = 'update wp_postmeta set ? where post_id = ? and (meta_key = "_sale_price" or meta_key = "_price")'
+                sql.values = [ novosPrecos, product_id ]
+
+                update = await db.query(sql)
+            }
+
+
+            if (precoDe && typeof precoDe == 'number') {
+                novosPrecos = {}
+                novosPrecos.meta_value = precoDe
+
+                sql.sql = 'update wp_postmeta set ? where post_id = ? and meta_key = "_regular_price"'
                 sql.values = [ novosPrecos, product_id ]
 
                 update = await db.query(sql)
@@ -224,8 +237,8 @@ router.patch('/produtos/:sku/estoque', auth, async (req, res) => {
             if (!product_id) throw new Error('SKU informada não existe') // Enviar objeto vazio em caso de não existência do SKU
 
             const sql = {}
-            sql.sql = 'update wp_wc_product_meta_lookup set stock_quantity = ? where product_id = ?'
-            sql.values = [ estoque, product_id ]
+            sql.sql = 'update wp_postmeta set ? where post_id = ? and meta_key = "_stock"'
+            sql.values = [ { meta_value: estoque }, product_id ]
 
             const update = await db.query(sql)
 
